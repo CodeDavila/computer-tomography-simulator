@@ -1,7 +1,7 @@
 # Constants
 
 # Width of the window in pixels
-WINDOW_WIDTH = 800
+WINDOW_WIDTH = 1200
 
 # Height of the window in pixels
 WINDOW_HEIGHT = 600

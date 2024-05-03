@@ -42,8 +42,28 @@ for col in range(9):  # Adjust weights for columns 2 through 10
 canvas = tk.Canvas(window, bg="white", borderwidth=0, highlightbackground="gray")
 canvas.grid(padx=5, pady=10, row=1, column=2, rowspan=9, columnspan=9, sticky="nsew")
 
+# Get canvas dimensions
+canvas.update()
+canvas_width = canvas.winfo_reqwidth()
+canvas_height = canvas.winfo_reqheight()
+
+# Get canvas center
+canvas_cx = canvas_width // 2
+canvas_cy = canvas_height // 2
+
+# Calculate rectangle coordinates to center it in the canvas
+rect_width = 50
+rect_height = 50
+
+
+x1 = canvas_width
+y1 = canvas_height
+x2 = canvas_cx
+y2 = canvas_cy
+
+print(f"{x1}, {y1}, {x2}, {y2}")
 # Create rectangle within the canvas
-canvas.create_rectangle(10, 10, 490, 490, fill="blue")
+canvas.create_rectangle(x1, y1, x2, y2, fill="blue")
 
 window.mainloop()
 
