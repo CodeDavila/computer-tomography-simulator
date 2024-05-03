@@ -1,4 +1,6 @@
 import tkinter as tk
+from skimage import data, img_as_ubyte
+from PIL import Image, ImageTk
 
 # Assuming WINDOW_WIDTH and WINDOW_HEIGHT are defined in constants.py
 from constants import WINDOW_WIDTH, WINDOW_HEIGHT, YELLOW
@@ -11,7 +13,7 @@ window.configure(bg="gray")
 window.attributes("-alpha", 0.95)
 
 label_text = "Computed Tomography Scanner"
-label = tk.Label(window, text=label_text, font=("Courier", 16), bg="gray", fg="black")
+label = tk.Label(window, text=label_text, font=("Courier", 24), bg="gray", fg="white")
 label.grid(padx=10, pady=10, row=0, column=0, columnspan=11)  # Adjust columnspan to 11
 
 set_button_text = "SET"
@@ -65,6 +67,22 @@ y2 = canvas_cy + recngle_height // 2
 
 # Place the rectangle
 canvas.create_rectangle(x1, y1, x2, y2, fill="blue")
+
+# Get the dummy-phantom
+dummy_image = data.shepp_logan_phantom()
+dummy_image = img_as_ubyte(dummy_image)  # Convert image to 8-bit for display
+dummy_image = Image.fromarray(dummy_image)  # Convert numpy array to PIL Image
+dummy_image = ImageTk.PhotoImage(dummy_image)  # Convert PIL Image to tkinter-compatible image
+
+dummy_width = dummy_image.width()
+dummy_height = dummy_image.height()
+
+# Get the dumyy position
+x1_dummy = canvas_cx - dummy_width // 2
+y1_dummy = canvas_cy - dummy_height // 2
+
+# Place the dummy
+canvas.create_image(x1_dummy, y1_dummy, anchor="nw", image=dummy_image)
 
 window.mainloop()
 
