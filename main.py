@@ -1,5 +1,6 @@
 import tkinter as tk  # Import tkinter module
-from skimage import data, img_as_ubyte  # Import necessary functions from skimage module
+from skimage import data # Import necessary functions from skimage module
+from skimage.util import img_as_ubyte
 from PIL import Image, ImageTk  # Import necessary classes from PIL module
 import numpy as np  # Import numpy module
 from skimage.transform import resize  # Import resize function from skimage.transform
