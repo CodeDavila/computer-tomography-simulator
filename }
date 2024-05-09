@@ -73,54 +73,61 @@ y2 = canvas_cy + rectangle_height // 2  # Calculate rectangle's bottom-right y-c
 # Place the rectangle on the canvas
 canvas.create_rectangle(x1, y1, x2, y2, fill="blue")  # Draw rectangle on canvas
 
-dummy = data.shepp_logan_phantom()  # Generate a dummy phantom image
 
-# Resize the dummy phantom to fit the canvas properly
-dummy = resize(dummy, (350, 350), anti_aliasing=True)  # Resize dummy image
+# Class for the dummy
+class Dummy:
+    def __init__(self) -> None:
+        self.phantom = data.shepp_logan_phantom()
+        self.phantom = resize(self.phantom, (350, 350), anti_aliasing=True)
 
-# Convert image to 8-bit for display
-dummy_image = img_as_ubyte(dummy)  # Convert image to 8-bit
+        dummy_image = img_as_ubyte(self.phantom)
+        dummy_image = Image.fromarray(dummy_image)
+        
+        self.phantom_tk = ImageTk.PhotoImage(dummy_image)
+        self.width = self.phantom_tk.width()
+        self.height = self.phantom_tk.height()
 
-# Convert numpy array to PIL Image
-dummy_image = Image.fromarray(dummy_image)  # Convert numpy array to PIL Image object
+dummy = Dummy()
+x_dummy = canvas_cx - dummy.width // 2
+y_dummy = canvas_cy - dummy.height // 2
 
-# Convert PIL Image to tkinter-compatible image
-dummy_image_tk = ImageTk.PhotoImage(dummy_image)  # Convert PIL Image to tkinter-compatible image object
+# Place the dummy on the canvas
+dummy_image_id = canvas.create_image(x_dummy, y_dummy, anchor="nw", image = dummy.phantom_tk)
 
-# Get the dimensions of the dummy image
-dummy_width = dummy_image_tk.width()  # Get dummy image width
-dummy_height = dummy_image_tk.height()  # Get dummy image height
+class Camera(Dummy):
+    def __init__(self) -> None:
+        super().__init__()
+        # Get the dummy in the camera
+        diagonal = np.sqrt(self.height ** 2 + self.width ** 2)  # Calculate diagonal of the dummy Image
 
-# Get the position to place the dummy image on the canvas
-x1_dummy = canvas_cx - dummy_width // 2  # Calculate dummy image's top-left x-coordinate
-y1_dummy = canvas_cy - dummy_height // 2  # Calculate dummy image's top-left y-coordinate
+        self.dummy_height = self.height
+        self.dummy_width = self.width
 
-# Place the dummy image on the canvas
-dummy_image_id = canvas.create_image(x1_dummy, y1_dummy, anchor="nw", image=dummy_image_tk)  # Place dummy image on canvas
+        self.height = int(np.ceil(diagonal - self.dummy_height) + 2)  # Calculate camera height
+        self.width = int(np.ceil(diagonal - self.dummy_width) + 2)  # Calculate camera width
 
-# Get the dummy in the camera
-diagonal = np.sqrt(dummy_height ** 2 + dummy_width ** 2)  # Calculate diagonal of the dummy image
-camera_height = int(np.ceil(diagonal - dummy_height) + 2)  # Calculate camera height
-camera_width = int(np.ceil(diagonal - dummy_width) + 2)  # Calculate camera width
+        self.camera, self.camera_tk = set_camera(self.height, self.width)
 
-# Define global variables to store camera data
-camera = None  # Initialize camera array
-camera_image = None  # Initialize camera PIL Image
-camera_image_tk = None  # Initialize camera tkinter-compatible image
+
+    def set_camera(self, height, width):
+        camera = np.zeros((self.dummy_height + self.height, self.dummy_width + self.width))
+        camera[
+                int(np.ceil(self.height/ 2)) : (int(np.ceil(self.height / 2)) + self.dummy_height),
+                int(np.ceil(self.width / 2)) : (int(np.ceil(self.width / 2)) + self.dummy_width),
+        ] = self.phantom  # Insert dummy image into camera array
+        
+        camera_image = img_as_ubyte(camera)
+        camera_image = Image.fromarray(camera_image)
+        camera_image_tk = ImageTk.PhotoImage(camera_image)
+
+        return camera, camera_image_tk
 
 def transition_to_camera_image(step=0):
-    """
-    Transition function to gradually display the camera image on the canvas.
-    
-    Args:
-        step (int): Current step of the transition animation.
-    """
-    global camera, camera_image, camera_image_tk
-    
+
     if step <= 100:
         # Calculate the partial width and height of the camera
-        partial_height = camera_height * step // 100  # Calculate partial camera height
-        partial_width = camera_width * step // 100  # Calculate partial camera width
+        partial_height = camera.height * step // 100  # Calculate partial camera height
+        partial_width = camera.width * step // 100  # Calculate partial camera width
 
         new_width = dummy_width + partial_width  # Calculate new width of the camera image
         new_height = dummy_height + partial_height  # Calculate new height of the camera image
@@ -151,19 +158,5 @@ def transition_to_camera_image(step=0):
 # Call transition_to_camera_image after a delay of 1000 milliseconds
 window.after(1000, transition_to_camera_image)
 
-# Define global variable to store the projections 
-projections = []
-
-def rotation_of_the_camera(step = 0):
-
-    global projections
-
-    if step <= 180:
-        print(f"Rotation angle = {step}")
-
-        canvas.after(10, rotation_of_the_camera, step + 1)
-
-# Call rotation_of_the_camera after a delay of 1800 milliseconds
-window.after(1800, rotation_of_the_camera)
 window.mainloop()  # Start the tkinter event loop
 
