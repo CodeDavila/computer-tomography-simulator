@@ -156,9 +156,12 @@ window.after(1000, transition_to_camera_image)
 
 # Define global variable to store the projections 
 projections = []
+camera_rotation_tk = None
 
 def rotation_of_the_camera(step=0):
-    
+
+    global camera_rotation_tk
+
     if step <= 180:
         camera_rotation = rotate(camera, -step, reshape=False)
         camera_rotation /= camera_rotation.max()
