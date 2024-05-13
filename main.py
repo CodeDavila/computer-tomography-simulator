@@ -5,6 +5,7 @@ from PIL import Image, ImageTk  # Import necessary classes from PIL module
 import numpy as np  # Import numpy module
 from skimage.transform import resize  # Import resize function from skimage.transform
 from constants import WINDOW_WIDTH, WINDOW_HEIGHT, YELLOW  # Import constants
+from scipy.ndimage import rotate
 
 # Create the main window
 window = tk.Tk()  # Initialize tkinter window
@@ -72,6 +73,8 @@ y2 = canvas_cy + rectangle_height // 2  # Calculate rectangle's bottom-right y-c
 
 # Place the rectangle on the canvas
 canvas.create_rectangle(x1, y1, x2, y2, fill="blue")  # Draw rectangle on canvas
+
+canvas.delete("all")
 
 dummy = data.shepp_logan_phantom()  # Generate a dummy phantom image
 
@@ -154,16 +157,29 @@ window.after(1000, transition_to_camera_image)
 # Define global variable to store the projections 
 projections = []
 
-def rotation_of_the_camera(step = 0):
-
-    global projections
-
+def rotation_of_the_camera(step=0):
+    
     if step <= 180:
-        print(f"Rotation angle = {step}")
+        camera_rotation = rotate(camera, -step, reshape=False)
+        camera_rotation /= camera_rotation.max()
+        camera_rotation = img_as_ubyte(camera_rotation)
+        camera_rotation = Image.fromarray(camera_rotation)
+
+        camera_rotation_tk = ImageTk.PhotoImage(camera_rotation)  # Create a new PhotoImage object
+
+        camera_rotation_width = camera_rotation_tk.width()
+        camera_rotation_height = camera_rotation_tk.height()
+
+        x1_camera_rotation = canvas_cx - camera_rotation_width // 2
+        y1_camera_rotation = canvas_cy - camera_rotation_height // 2
+
+        canvas.itemconfig(dummy_image_id, image=camera_rotation_tk)  # Update the image on canvas with the new PhotoImage
+        canvas.coords(dummy_image_id, x1_camera_rotation, y1_camera_rotation)
 
         canvas.after(10, rotation_of_the_camera, step + 1)
 
 # Call rotation_of_the_camera after a delay of 1800 milliseconds
 window.after(1800, rotation_of_the_camera)
+
 window.mainloop()  # Start the tkinter event loop
 
