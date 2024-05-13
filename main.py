@@ -162,8 +162,13 @@ def rotation_of_the_camera(step=0):
 
     global camera_rotation_tk
 
-    if step <= 180:
-        camera_rotation = rotate(camera, -step, reshape=False)
+    if step <= 360:
+        if step <=180:
+            camera_rotation = rotate(camera, -step, reshape=False)
+        elif step < 360:
+            camera_rotation = rotate(camera, -180 + step%180 ,reshape=False)
+        else:
+            camera_rotation = camera
         camera_rotation /= camera_rotation.max()
         camera_rotation = img_as_ubyte(camera_rotation)
         camera_rotation = Image.fromarray(camera_rotation)
@@ -182,7 +187,7 @@ def rotation_of_the_camera(step=0):
         canvas.after(10, rotation_of_the_camera, step + 1)
 
 # Call rotation_of_the_camera after a delay of 1800 milliseconds
-window.after(1800, rotation_of_the_camera)
+window.after(3600, rotation_of_the_camera)
 
 window.mainloop()  # Start the tkinter event loop
 
