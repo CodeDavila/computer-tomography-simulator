@@ -140,6 +140,7 @@ class MachineMotor:
         self.camera = None
         self.camera_tk = None
         self.camera_rotation_tk = None
+        self.projections_list = []
 
     def transition_to_camera_image(self, step = 0):        
         if step <= 100:
@@ -161,6 +162,8 @@ class MachineMotor:
             if step <= 180:
                 camera_rotation = rotate(self.camera, -step, reshape=False)
                 camera_rotation /= camera_rotation.max()
+                column_sums = np.sum(camera_rotation, axis=0)
+                self.projections_list.append(column_sums)
             elif step < 360:
                 camera_rotation = rotate(self.camera, -180+step%180, reshape=False)
                 camera_rotation /= camera_rotation.max()
