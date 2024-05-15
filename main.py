@@ -13,6 +13,9 @@ YELLOW = "#EE9626"
 class ImageProcessor:
     @staticmethod
     def process_image_tk(image, canvas_cx, canvas_cy):
+        den = image.max() - image.min()
+        num = image - image.min()
+        image = num/den
         image = img_as_ubyte(image)
         image = Image.fromarray(image)
         image_tk = ImageTk.PhotoImage(image)
@@ -124,6 +127,8 @@ class CTMachineApp:
             self.machine.rotation_of_the_camera()
             self.master.wait_variable(self.machine.sync)
             self.machine.reconstruction_of_the_image()
+            self.master.wait_variable(self.machine.sync)
+            self.machine.crop_reconstruction()
 
     def on_stop_button_click(self):
         pass
@@ -164,16 +169,13 @@ class MachineMotor:
         if step <= 360:
             if step <= 180:
                 camera_rotation = rotate(self.camera, -step, reshape=False)
-                camera_rotation /= camera_rotation.max()
                 column_sums = np.sum(camera_rotation, axis=0)
                 self.projections_list.append(column_sums)
             elif step < 360:
                 camera_rotation = rotate(self.camera, -180+step%180, reshape=False)
-                camera_rotation /= camera_rotation.max()
             else:
                 camera_rotation = self.camera
                 self.sync.set(not self.sync)
-
             cx, cy = self.master.canvas_center()
             self.camera_rotation_tk, x, y = ImageProcessor.process_image_tk(camera_rotation, cx, cy)
             self.master.update_canvas(self.camera_rotation_tk, x, y, self.rotation_of_the_camera, steps = step+1)
@@ -191,9 +193,8 @@ class MachineMotor:
         self.reconstruction = np.zeros((self.n, self.n))
         w = np.linspace(-np.pi, np.pi-(2*np.pi)/self.n, self.n)
         self.my_filter = np.abs(np.sin(w))
-
         self.reconstruction_process()
-
+        
     def reconstruction_process(self, step = 0):
         if step < self.projections.shape[0]:
             reconstruction_aux = np.ones((self.n, self.n))
@@ -205,12 +206,30 @@ class MachineMotor:
             filteredProjectionsDT = np.fft.ifft(filteredProjectionsDF)
             reconstruction_aux[valIndx] = np.real(filteredProjectionsDT[indx])
             self.reconstruction += reconstruction_aux
-            den = self.reconstruction.max() - self.reconstruction.min()
-            num = self.reconstruction - self.reconstruction.min()
-            self.reconstruction = 2*num/den-1
             cx, cy = self.master.canvas_center()
             self.reconstruction_tk, x, y = ImageProcessor.process_image_tk(self.reconstruction, cx, cy)
             self.master.update_canvas(self.reconstruction_tk, x, y, self.reconstruction_process, steps = step+1)
+        else:
+            self.sync.set(not self.sync)
+
+    def crop_reconstruction(self):
+        
+        self.reconstruction = rotate( self.reconstruction,90, reshape=False)
+        cut = np.zeros((self.master.dummy.dummy_height, self.master.dummy.dummy_width))
+        cut = self.reconstruction[
+                int(np.ceil(self.center - self.master.dummy.dummy_height/2)) : (int(np.ceil(self.center + self.master.dummy.dummy_height/2))),
+                int(np.ceil(self.center - self.master.dummy.dummy_width/2)) : (int(np.ceil(self.center + self.master.dummy.dummy_width/2))),
+        ]
+        self.reconstruction = cut
+        cx, cy = self.master.canvas_center()
+        self.reconstruction_tk, x, y = ImageProcessor.process_image_tk(self.reconstruction, cx, cy)
+        self.master.master.after(3000)
+        self.master.update_canvas(self.reconstruction_tk, x, y, self.reconstruction_pass, steps = 0)
+        
+
+    @staticmethod
+    def reconstruction_pass(step = 0):
+        step = step
 
 def main():
     root = tk.Tk()
