@@ -1,193 +1,180 @@
-import tkinter as tk  # Import tkinter module
-from skimage import data # Import necessary functions from skimage module
-from skimage.util import img_as_ubyte
-from PIL import Image, ImageTk  # Import necessary classes from PIL module
-import numpy as np  # Import numpy module
-from skimage.transform import resize  # Import resize function from skimage.transform
-from constants import WINDOW_WIDTH, WINDOW_HEIGHT, YELLOW  # Import constants
+import tkinter as tk
+import numpy as np
+from PIL import Image, ImageTk
 from scipy.ndimage import rotate
+from skimage.transform import resize
+from skimage import data
+from skimage.util import img_as_ubyte
 
-# Create the main window
-window = tk.Tk()  # Initialize tkinter window
-window.title("CT machine")  # Set window title
-window.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")  # Set window size
-window.resizable(False, False)  # Disable window resizing
-window.configure(bg="gray")  # Set window background color
-window.attributes("-alpha", 0.95)  # Set window transparency
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 600
+YELLOW = "#EE9626"
 
-# Add label for the CT scanner title
-label_text = "Computed Tomography Scanner"  # Define label text
-label = tk.Label(window, text=label_text, font=("Courier", 24), bg="gray", fg="white")  # Create label widget
-label.grid(padx=10, pady=10, row=0, column=0, columnspan=11)  # Place label in the window
+class ImageProcessor:
+    @staticmethod
+    def process_image_tk(image, canvas_cx, canvas_cy):
+        image = img_as_ubyte(image)
+        image = Image.fromarray(image)
+        image_tk = ImageTk.PhotoImage(image)
+        image_width = image_tk.width()
+        image_height = image_tk.height()
+        x = canvas_cx - image_width // 2
+        y = canvas_cy - image_height // 2
+        return image_tk, x, y
 
-# Add buttons for setting parameters, running, stopping, and continuing the CT scan
-set_button_text = "SET"  # Define set button text
-set_button = tk.Button(window, text=set_button_text, font=("Courier", 16, "bold"), bg="white", fg="blue", width=20, height=2, highlightbackground="gray")  # Create set button widget
-set_button.grid(padx=5, pady=10, row=2, column=0, columnspan=2)  # Place set button in the window
+class Dummy():
+    def __init__(self) -> None:
+        self.dummy = data.shepp_logan_phantom()
+        self.dummy_width = 350
+        self.dummy_height = 350
+        self.dummy = resize(self.dummy,(self.dummy_width, self.dummy_height), anti_aliasing=True)
+        diagonal = np.sqrt(self.dummy_height ** 2 + self.dummy_width ** 2)  # Calculate diagonal of the dummy image
+        self.camera_height = int(np.ceil(diagonal - self.dummy_height) + 2)  # Calculate camera height
+        self.camera_width = int(np.ceil(diagonal - self.dummy_width) + 2)  # Calculate camera width
 
-run_button_text = "RUN"  # Define run button text
-run_button = tk.Button(window, text=run_button_text, font=("Courier", 16, "bold"), bg="white", fg="green", width=20, height=2, highlightbackground="gray")  # Create run button widget
-run_button.grid(padx=5, pady=10, row=4, column=0, columnspan=2)  # Place run button in the window
 
-stop_button_text = "STOP"  # Define stop button text
-stop_button = tk.Button(window, text=stop_button_text, font=("Courier", 16, "bold"), bg="white", fg="red", width=20, height=2, highlightbackground="gray")  # Create stop button widget
-stop_button.grid(padx=5, pady=10, row=6, column=0, columnspan=2)  # Place stop button in the window
+class CTMachineApp:
+    def __init__(self, master) -> None:
+        self.master = master
+        self.WINDOW_WIDTH = WINDOW_WIDTH
+        self.WINDOW_HEIGHT = WINDOW_HEIGHT
+        self.create_widgets()
+        self.set_flag = False
+        self.run_flag = False
 
-continue_button_text = "CONTINUE"  # Define continue button text
-continue_button = tk.Button(window, text=continue_button_text, font=("Courier", 16, "bold"), bg="white", fg=YELLOW, width=20, height=2, highlightbackground="gray")  # Create continue button widget
-continue_button.grid(padx=5, pady=10, row=8, column=0, columnspan=2)  # Place continue button in the window
+    def create_widgets(self):
+        self.master.title("CT machine")
+        self.master.geometry(f"{self.WINDOW_WIDTH}x{self.WINDOW_HEIGHT}")
+        self.master.resizable(False, False)
+        self.master.configure(bg="gray")
+        self.master.attributes("-alpha", 0.95)
 
-# Add a text widget for logging
-log_text = tk.Text(window, font=("Courier", 16, "bold"), bg="black", fg="yellow", width=22, height=15, highlightbackground="gray")  # Create text widget
-log_text.grid(padx=5, pady=10, row=9, column=0, columnspan=2)  # Place text widget in the window
+        self.create_labels()
+        self.create_buttons()
+        self.create_log_text()
+        self.create_canvas()
+        self.draw_rectangle()
 
-# Adjust column weights to make them fill the space horizontally
-window.grid_columnconfigure(2, weight=1)  # Adjust column 2 weight
-for col in range(9):  # Adjust weights for columns 2 through 10
-    window.grid_columnconfigure(col+2, weight=1)
+    def create_labels(self):
+        label_text = "Computed Tomography Scanner"
+        label = tk.Label(self.master, text=label_text, font=("Courier", 24), bg="gray", fg="white")
+        label.grid(padx=10, pady=10, row=0, column=0, columnspan=11)
 
-# Create canvas for displaying images
-canvas = tk.Canvas(window, bg="white", borderwidth=0, highlightbackground="gray")  # Create canvas widget
-canvas.grid(padx=5, pady=10, row=1, column=2, rowspan=9, columnspan=9, sticky="nsew")  # Place canvas in the window
+    def create_buttons(self):
+        buttons_data = [
+            ("SET", "blue", self.on_set_button_click),
+            ("RUN", "green", self.on_run_button_click),
+            ("STOP", "red", self.on_stop_button_click),
+            ("CONTINUE", YELLOW, self.on_continue_button_click)
+        ]
+        for i, (text, color, command) in enumerate(buttons_data):
+            button = tk.Button(self.master, text=text, font=("Courier", 16, "bold"),
+                               bg="white", fg=color, width=20, height=2,
+                               highlightbackground="gray", command=command)
+            button.grid(padx=5, pady=10, row=2+i*2, column=0, columnspan=2)
 
-# Force update to get the correct canvas dimensions
-window.update_idletasks()
+    def create_log_text(self):
+        self.log_text = tk.Text(self.master, font=("Courier", 16, "bold"), bg="black", fg="yellow",
+                                width=22, height=15, highlightbackground="gray")
+        self.log_text.grid(padx=5, pady=10, row=9, column=0, columnspan=2)
 
-# Get canvas dimensions
-canvas_width = canvas.winfo_width()  # Get canvas width
-canvas_height = canvas.winfo_height()  # Get canvas height
+    def create_canvas(self):
+        self.master.grid_columnconfigure(2, weight=1)
+        for col in range(9):
+            self.master.grid_columnconfigure(col+2, weight=1)
+        self.canvas = tk.Canvas(self.master, bg="white", borderwidth=0, highlightbackground="gray")
+        self.canvas.grid(padx=5, pady=10, row=1, column=2, rowspan=9, columnspan=9, sticky="nsew")
+        self.master.update_idletasks()
 
-# Get canvas center
-canvas_cx = canvas_width // 2  # Calculate canvas center x-coordinate
-canvas_cy = canvas_height // 2  # Calculate canvas center y-coordinate
+    def canvas_center(self):
+        canvas_cx = self.canvas.winfo_width() // 2
+        canvas_cy = self.canvas.winfo_height() // 2
 
-# Set rectangle dimensions for visualization purposes
-rectangle_width = 500  # Define rectangle width
-rectangle_height = 500  # Define rectangle height
+        return canvas_cx, canvas_cy
 
-# Get the rectangle position
-x1 = canvas_cx - rectangle_width // 2  # Calculate rectangle's top-left x-coordinate
-y1 = canvas_cy - rectangle_height // 2  # Calculate rectangle's top-left y-coordinate
-x2 = canvas_cx + rectangle_width // 2  # Calculate rectangle's bottom-right x-coordinate
-y2 = canvas_cy + rectangle_height // 2  # Calculate rectangle's bottom-right y-coordinate
+    def draw_rectangle(self):
+        rectangle_width = 500
+        rectangle_height = 500
+        cx, cy = self.canvas_center()
+        x1 = cx - rectangle_width//2
+        y1 = cy - rectangle_height//2
+        x2 = x1 + rectangle_width
+        y2 = y1 + rectangle_height
+        self.canvas.create_rectangle(x1, y1, x2, y2, fill="blue")
 
-# Place the rectangle on the canvas
-canvas.create_rectangle(x1, y1, x2, y2, fill="blue")  # Draw rectangle on canvas
+    def draw_dummy_image(self):
+        cx, cy = self.canvas_center()
+        self.dummy = Dummy()
+        dummy_tk, x, y = ImageProcessor.process_image_tk(self.dummy.dummy, cx, cy)
+        self.imageID = self.canvas.create_image(x, y, anchor="nw", image=dummy_tk)
 
-canvas.delete("all")
+    def update_canvas(self, image_tk, x, y, fun, steps):
+        self.canvas.itemconfig(self.imageID, image=image_tk)
+        self.canvas.coords(self.imageID, x, y)
+        self.canvas.after(10, fun, steps)
 
-dummy = data.shepp_logan_phantom()  # Generate a dummy phantom image
+    def on_set_button_click(self):
+        if not self.set_flag:
+            self.set_flag = True
+            self.draw_dummy_image()
+            self.machine = MachineMotor(self)
+            self.master.after(500, self.machine.transition_to_camera_image)
 
-# Resize the dummy phantom to fit the canvas properly
-dummy = resize(dummy, (350, 350), anti_aliasing=True)  # Resize dummy image
+    def on_run_button_click(self):
+        if self.set_flag and not self.run_flag:
+            self.run_flag = True
+            self.machine.rotation_of_the_camera()
 
-# Convert image to 8-bit for display
-dummy_image = img_as_ubyte(dummy)  # Convert image to 8-bit
+    def on_stop_button_click(self):
+        pass
 
-# Convert numpy array to PIL Image
-dummy_image = Image.fromarray(dummy_image)  # Convert numpy array to PIL Image object
+    def on_continue_button_click(self):
+        pass
 
-# Convert PIL Image to tkinter-compatible image
-dummy_image_tk = ImageTk.PhotoImage(dummy_image)  # Convert PIL Image to tkinter-compatible image object
+    def run_app(self):
+        self.master.mainloop()
 
-# Get the dimensions of the dummy image
-dummy_width = dummy_image_tk.width()  # Get dummy image width
-dummy_height = dummy_image_tk.height()  # Get dummy image height
+class MachineMotor:
+    def __init__(self, master) -> None:
+        self.master = master
+        self.camera = None
+        self.camera_tk = None
+        self.camera_rotation_tk = None
 
-# Get the position to place the dummy image on the canvas
-x1_dummy = canvas_cx - dummy_width // 2  # Calculate dummy image's top-left x-coordinate
-y1_dummy = canvas_cy - dummy_height // 2  # Calculate dummy image's top-left y-coordinate
+    def transition_to_camera_image(self, step = 0):        
+        if step <= 100:
+            pH = self.master.dummy.camera_height * step // 100
+            pW = self.master.dummy.camera_width * step // 100
+            new_height = self.master.dummy.dummy_height + pH
+            new_width = self.master.dummy.dummy_width + pW
+            self.camera = np.zeros((new_height, new_width))
+            self.camera[
+                    int(np.ceil(pH/2)) : (int(np.ceil(pH/2)) + self.master.dummy.dummy_height),
+                    int(np.ceil(pW/2)) : (int(np.ceil(pW/2)) + self.master.dummy.dummy_width),
+            ] = self.master.dummy.dummy
+            cx, cy = self.master.canvas_center()
+            self.camera_tk, x, y = ImageProcessor.process_image_tk(self.camera, cx, cy)
+            self.master.update_canvas(self.camera_tk, x, y, self.transition_to_camera_image, steps = step+2)
 
-# Place the dummy image on the canvas
-dummy_image_id = canvas.create_image(x1_dummy, y1_dummy, anchor="nw", image=dummy_image_tk)  # Place dummy image on canvas
+    def rotation_of_the_camera(self, step = 1):
+        if step <= 360:
+            if step <= 180:
+                camera_rotation = rotate(self.camera, -step, reshape=False)
+                camera_rotation /= camera_rotation.max()
+            elif step < 360:
+                camera_rotation = rotate(self.camera, -180+step%180, reshape=False)
+                camera_rotation /= camera_rotation.max()
+            else:
+                camera_rotation = self.camera
+            cx, cy = self.master.canvas_center()
+            self.camera_rotation_tk, x, y = ImageProcessor.process_image_tk(camera_rotation, cx, cy)
+            self.master.update_canvas(self.camera_rotation_tk, x, y, self.rotation_of_the_camera, steps = step+1)
 
-# Get the dummy in the camera
-diagonal = np.sqrt(dummy_height ** 2 + dummy_width ** 2)  # Calculate diagonal of the dummy image
-camera_height = int(np.ceil(diagonal - dummy_height) + 2)  # Calculate camera height
-camera_width = int(np.ceil(diagonal - dummy_width) + 2)  # Calculate camera width
+def main():
+    root = tk.Tk()
+    app = CTMachineApp(root)
+    app.run_app()
 
-# Define global variables to store camera data
-camera = None  # Initialize camera array
-camera_image = None  # Initialize camera PIL Image
-camera_image_tk = None  # Initialize camera tkinter-compatible image
-
-def transition_to_camera_image(step=0):
-    """
-    Transition function to gradually display the camera image on the canvas.
-    
-    Args:
-        step (int): Current step of the transition animation.
-    """
-    global camera, camera_image, camera_image_tk
-    
-    if step <= 100:
-        # Calculate the partial width and height of the camera
-        partial_height = camera_height * step // 100  # Calculate partial camera height
-        partial_width = camera_width * step // 100  # Calculate partial camera width
-
-        new_width = dummy_width + partial_width  # Calculate new width of the camera image
-        new_height = dummy_height + partial_height  # Calculate new height of the camera image
-
-        camera = np.zeros((new_height, new_width))  # Create zero-filled camera array
-        camera[
-            int(np.ceil(partial_height / 2)) : (int(np.ceil(partial_height / 2)) + dummy_height),
-            int(np.ceil(partial_width / 2)) : (int(np.ceil(partial_width / 2)) + dummy_width),
-        ] = dummy  # Insert dummy image into camera array
-
-        camera_image = img_as_ubyte(camera)  # Convert camera array to 8-bit
-        camera_image = Image.fromarray(camera_image)  # Convert camera array to PIL Image
-        camera_image_tk = ImageTk.PhotoImage(camera_image)  # Convert PIL Image to tkinter-compatible image
-
-        partial_camera_width = camera_image_tk.width()  # Get partial camera image width
-        partial_camera_height = camera_image_tk.height()  # Get partial camera image height
-
-        x1_camera = canvas_cx - partial_camera_width // 2  # Calculate camera image's top-left x-coordinate
-        y1_camera = canvas_cy - partial_camera_height // 2  # Calculate camera image's top-left y-coordinate
-        
-        # Update the dummy image
-        canvas.itemconfig(dummy_image_id, image=camera_image_tk)  # Update dummy image on canvas
-        canvas.coords(dummy_image_id, x1_camera, y1_camera)  # Update dummy image position on canvas
-        
-        # Call transition_to_camera_image recursively after a delay
-        canvas.after(10, transition_to_camera_image, step + 2)
-
-# Call transition_to_camera_image after a delay of 1000 milliseconds
-window.after(1000, transition_to_camera_image)
-
-# Define global variable to store the projections 
-projections = []
-camera_rotation_tk = None
-
-def rotation_of_the_camera(step=0):
-
-    global camera_rotation_tk
-
-    if step <= 360:
-        if step <=180:
-            camera_rotation = rotate(camera, -step, reshape=False)
-        elif step < 360:
-            camera_rotation = rotate(camera, -180 + step%180 ,reshape=False)
-        else:
-            camera_rotation = camera
-        camera_rotation /= camera_rotation.max()
-        camera_rotation = img_as_ubyte(camera_rotation)
-        camera_rotation = Image.fromarray(camera_rotation)
-
-        camera_rotation_tk = ImageTk.PhotoImage(camera_rotation)  # Create a new PhotoImage object
-
-        camera_rotation_width = camera_rotation_tk.width()
-        camera_rotation_height = camera_rotation_tk.height()
-
-        x1_camera_rotation = canvas_cx - camera_rotation_width // 2
-        y1_camera_rotation = canvas_cy - camera_rotation_height // 2
-
-        canvas.itemconfig(dummy_image_id, image=camera_rotation_tk)  # Update the image on canvas with the new PhotoImage
-        canvas.coords(dummy_image_id, x1_camera_rotation, y1_camera_rotation)
-
-        canvas.after(10, rotation_of_the_camera, step + 1)
-
-# Call rotation_of_the_camera after a delay of 1800 milliseconds
-window.after(3600, rotation_of_the_camera)
-
-window.mainloop()  # Start the tkinter event loop
+if __name__ == "__main__":
+    main()
 
