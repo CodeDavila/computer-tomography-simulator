@@ -122,6 +122,8 @@ class CTMachineApp:
         if self.set_flag and not self.run_flag:
             self.run_flag = True
             self.machine.rotation_of_the_camera()
+            self.master.wait_variable(self.machine.sync)
+            print(np.asanyarray(self.machine.projections_list).shape)
 
     def on_stop_button_click(self):
         pass
@@ -139,6 +141,7 @@ class MachineMotor:
         self.camera_tk = None
         self.camera_rotation_tk = None
         self.projections_list = []
+        self.sync = tk.BooleanVar(value=False)
 
     def transition_to_camera_image(self, step = 0):        
         if step <= 100:
@@ -167,6 +170,8 @@ class MachineMotor:
                 camera_rotation /= camera_rotation.max()
             else:
                 camera_rotation = self.camera
+                self.sync.set(not self.sync)
+
             cx, cy = self.master.canvas_center()
             self.camera_rotation_tk, x, y = ImageProcessor.process_image_tk(camera_rotation, cx, cy)
             self.master.update_canvas(self.camera_rotation_tk, x, y, self.rotation_of_the_camera, steps = step+1)
