@@ -123,7 +123,7 @@ class CTMachineApp:
             self.run_flag = True
             self.machine.rotation_of_the_camera()
             self.master.wait_variable(self.machine.sync)
-            print(np.asanyarray(self.machine.projections_list).shape)
+            self.machine.reconstruction_of_the_image()
 
     def on_stop_button_click(self):
         pass
@@ -141,6 +141,8 @@ class MachineMotor:
         self.camera_tk = None
         self.camera_rotation_tk = None
         self.projections_list = []
+        self.reconstruction = np.array((0,0))
+        self.reconstruction_tk = None
         self.sync = tk.BooleanVar(value=False)
 
     def transition_to_camera_image(self, step = 0):        
@@ -175,6 +177,40 @@ class MachineMotor:
             cx, cy = self.master.canvas_center()
             self.camera_rotation_tk, x, y = ImageProcessor.process_image_tk(camera_rotation, cx, cy)
             self.master.update_canvas(self.camera_rotation_tk, x, y, self.rotation_of_the_camera, steps = step+1)
+
+    def reconstruction_of_the_image(self):
+        self.projections = np.array(self.projections_list)
+        self.n = self.projections.shape[1]
+        self.th = np.pi - np.deg2rad(np.linspace(1, 180, self.projections.shape[0]))
+        self.center = (self.n-1)/2
+        x = np.arange(0, self.n)
+        y = np.arange(0, self.n)
+        X, Y = np.meshgrid(x, y)
+        self.xpr = X - self.center
+        self.ypr = Y - self.center
+        self.reconstruction = np.zeros((self.n, self.n))
+        w = np.linspace(-np.pi, np.pi-(2*np.pi)/self.n, self.n)
+        self.my_filter = np.abs(np.sin(w))
+
+        self.reconstruction_process()
+
+    def reconstruction_process(self, step = 0):
+        if step < self.projections.shape[0]:
+            reconstruction_aux = np.ones((self.n, self.n))
+            indx  = np.round(self.center + self.xpr * np.sin(self.th[step]) - self.ypr * np.cos(self.th[step])).astype(int)
+            valIndx = np.where((indx >= 0) & (indx < self.n))
+            indx = indx[valIndx]
+            projectionsFFT = np.fft.fft(self.projections[step, :])
+            filteredProjectionsDF = projectionsFFT * self.my_filter
+            filteredProjectionsDT = np.fft.ifft(filteredProjectionsDF)
+            reconstruction_aux[valIndx] = np.real(filteredProjectionsDT[indx])
+            self.reconstruction += reconstruction_aux
+            den = self.reconstruction.max() - self.reconstruction.min()
+            num = self.reconstruction - self.reconstruction.min()
+            self.reconstruction = 2*num/den-1
+            cx, cy = self.master.canvas_center()
+            self.reconstruction_tk, x, y = ImageProcessor.process_image_tk(self.reconstruction, cx, cy)
+            self.master.update_canvas(self.reconstruction_tk, x, y, self.reconstruction_process, steps = step+1)
 
 def main():
     root = tk.Tk()
