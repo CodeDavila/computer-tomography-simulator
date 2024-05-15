@@ -28,9 +28,9 @@ class Dummy():
         self.dummy_width = 350
         self.dummy_height = 350
         self.dummy = resize(self.dummy,(self.dummy_width, self.dummy_height), anti_aliasing=True)
-        diagonal = np.sqrt(self.dummy_height ** 2 + self.dummy_width ** 2)  # Calculate diagonal of the dummy image
-        self.camera_height = int(np.ceil(diagonal - self.dummy_height) + 2)  # Calculate camera height
-        self.camera_width = int(np.ceil(diagonal - self.dummy_width) + 2)  # Calculate camera width
+        diagonal = np.sqrt(self.dummy_height ** 2 + self.dummy_width ** 2)
+        self.camera_height = int(np.ceil(diagonal - self.dummy_height) + 2)
+        self.camera_width = int(np.ceil(diagonal - self.dummy_width) + 2)
 
 
 class CTMachineApp:
@@ -48,7 +48,6 @@ class CTMachineApp:
         self.master.resizable(False, False)
         self.master.configure(bg="gray")
         self.master.attributes("-alpha", 0.95)
-
         self.create_labels()
         self.create_buttons()
         self.create_log_text()
@@ -89,7 +88,6 @@ class CTMachineApp:
     def canvas_center(self):
         canvas_cx = self.canvas.winfo_width() // 2
         canvas_cy = self.canvas.winfo_height() // 2
-
         return canvas_cx, canvas_cy
 
     def draw_rectangle(self):
