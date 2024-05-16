@@ -6,7 +6,7 @@ from machine_motor import MachineMotor
 from constants import WINDOW_WIDTH, WINDOW_HEIGHT, YELLOW
 
 # TODO:
-# - Implement functionality fot the log 
+# - Implement functionality for the log 
 # - Implement functionality for the 'on_stop_button_click' method.
 # - Implement functionality for the 'on_continue_button_click' method.
 
