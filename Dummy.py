@@ -1,7 +1,7 @@
 import numpy as np
 from skimage.transform import resize
 from skimage import data
-
+# dummy
 class Dummy():
     def __init__(self) -> None:
         # Initialize the Dummy class
