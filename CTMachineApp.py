@@ -8,6 +8,7 @@ from constants import WINDOW_WIDTH, WINDOW_HEIGHT, YELLOW
 
 class CTMachineApp:
     def __init__(self, master) -> None:
+        # Initialize the CTMachineApp
         self.master = master
         self.WINDOW_WIDTH = WINDOW_WIDTH
         self.WINDOW_HEIGHT = WINDOW_HEIGHT
@@ -16,6 +17,7 @@ class CTMachineApp:
         self.run_flag = False
 
     def create_widgets(self):
+        # Create various widgets for the application
         self.master.title("CT machine")
         self.master.geometry(f"{self.WINDOW_WIDTH}x{self.WINDOW_HEIGHT}")
         self.master.resizable(False, False)
@@ -28,16 +30,18 @@ class CTMachineApp:
         self.draw_entry()
 
     def create_labels(self):
+        # Create labels for the application
         label_text = "Computed Tomography Scanner"
         label = tk.Label(self.master, text=label_text, font=("Courier", 24), bg="gray", fg="white")
         label.grid(padx=10, pady=10, row=0, column=0, columnspan=11)
 
     def create_buttons(self):
+        # Create buttons for the application
         buttons_data = [
             ("SET", "blue", self.on_set_button_click),
             ("RUN", "green", self.on_run_button_click),
-            ("STOP", "red", self.on_stop_button_click),
-            ("CONTINUE", YELLOW, self.on_continue_button_click)
+            ("STOP", "red", self.on_stop_button_click),  # Placeholder for functionality
+            ("CONTINUE", YELLOW, self.on_continue_button_click)  # Placeholder for functionality
         ]
         for i, (text, color, command) in enumerate(buttons_data):
             button = tk.Button(self.master, text=text, font=("Courier", 16, "bold"),
@@ -46,11 +50,13 @@ class CTMachineApp:
             button.grid(padx=5, pady=10, row=2+i*2, column=0, columnspan=2)
 
     def create_log_text(self):
+        # Create log text area for the application
         self.log_text = tk.Text(self.master, font=("Courier", 16, "bold"), bg="black", fg="yellow",
                                 width=22, height=15, highlightbackground="gray")
         self.log_text.grid(padx=5, pady=10, row=9, column=0, columnspan=2)
 
     def create_canvas(self):
+        # Create canvas for displaying images
         self.master.grid_columnconfigure(2, weight=1)
         for col in range(9):
             self.master.grid_columnconfigure(col+2, weight=1)
@@ -59,11 +65,13 @@ class CTMachineApp:
         self.master.update_idletasks()
 
     def canvas_center(self):
+        # Get the center coordinates of the canvas
         canvas_cx = self.canvas.winfo_width() // 2
         canvas_cy = self.canvas.winfo_height() // 2
         return canvas_cx, canvas_cy
     
     def draw_entry(self) -> None:
+        # Draw entry image on the canvas
         try:
             image = Image.open("ct_entry.png")
             image = image.resize((500, 500))
@@ -78,17 +86,20 @@ class CTMachineApp:
             print("Error :", e)
 
     def draw_dummy_image(self):
+        # Draw a dummy image on the canvas
         cx, cy = self.canvas_center()
         self.dummy = Dummy()
         dummy_tk, x, y = ImageProcessor.process_image_tk(self.dummy.dummy, cx, cy)
         self.imageID = self.canvas.create_image(x, y, anchor="nw", image=dummy_tk)
 
     def update_canvas(self, image_tk, x, y, fun, steps):
+        # Update canvas with new image and coordinates
         self.canvas.itemconfig(self.imageID, image=image_tk)
         self.canvas.coords(self.imageID, x, y)
         self.canvas.after(10, fun, steps)
 
     def on_set_button_click(self):
+        # Event handler for the SET button click
         if not self.set_flag:
             self.set_flag = True
             self.canvas.delete(self.image_entry_ID)
@@ -97,6 +108,7 @@ class CTMachineApp:
             self.master.after(500, self.machine.transition_to_camera_image)
 
     def on_run_button_click(self):
+        # Event handler for the RUN button click
         if self.set_flag and not self.run_flag:
             self.run_flag = True
             self.machine.rotation_of_the_camera()
@@ -105,16 +117,18 @@ class CTMachineApp:
             self.master.wait_variable(self.machine.sync)
             self.machine.crop_reconstruction()
 
-    # TODO:
-    # - Implement functionality for the 'on_stop_button_click' method.
-    # - Implement functionality for the 'on_continue_button_click' method.
     def on_stop_button_click(self):
+        # Placeholder for functionality of the STOP button
         pass
 
     def on_continue_button_click(self):
+        # Placeholder for functionality of the CONTINUE button
         pass
 
     def run_app(self):
+        # Run the application
         self.master.mainloop()
 
-
+    # TODO:
+    # - Implement functionality for the 'on_stop_button_click' method.
+    # - Implement functionality for the 'on_continue_button_click' method.
