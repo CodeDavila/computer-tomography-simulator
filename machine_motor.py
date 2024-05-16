@@ -4,7 +4,7 @@ from scipy.ndimage import rotate
 from image_processor import ImageProcessor
 
 # TODO:
-# - Implement functionality fot the log
+# - Implement functionality for the log
 
 class MachineMotor:
     def __init__(self, master) -> None:
