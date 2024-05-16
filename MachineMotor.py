@@ -5,6 +5,12 @@ from ImageProcessor import ImageProcessor
 
 class MachineMotor:
     def __init__(self, master) -> None:
+        """
+        Initialize the MachineMotor class.
+
+        Parameters:
+            master (CTMachineApp): The master instance of the CTMachineApp class.
+        """
         self.master = master
         self.camera = None
         self.camera_tk = None
@@ -17,6 +23,12 @@ class MachineMotor:
         self.sync = tk.BooleanVar(value=False)
 
     def transition_to_camera_image(self, step = 0):        
+        """
+        Transition to camera image.
+
+        Parameters:
+            step (int): Current step in the transition process.
+        """       
         if step <= 100:
             pH = self.master.dummy.camera_height * step // 100
             pW = self.master.dummy.camera_width * step // 100
@@ -32,9 +44,16 @@ class MachineMotor:
             self.master.update_canvas(self.camera_tk, x, y, self.transition_to_camera_image, steps = step+2)
 
     def rotation_of_the_camera(self, step = 1):
+        """
+        Rotate the camera.
+
+        Parameters:
+            step (int): Current step in the rotation process.
+        """
         if step <= 360:
             if step <= 180:
                 camera_rotation = rotate(self.camera, -step, reshape=False)
+                # Calculate column sums of the rotated camera image and append to projections list
                 column_sums = np.sum(camera_rotation, axis=0)
                 self.projections_list.append(column_sums)
             elif step < 360:
@@ -47,6 +66,9 @@ class MachineMotor:
             self.master.update_canvas(self.camera_rotation_tk, x, y, self.rotation_of_the_camera, steps = step+1)
 
     def reconstruction_of_the_image(self):
+        """
+        Reconstruct the image from projections.
+        """
         self.projections = np.array(self.projections_list)
         self.n = self.projections.shape[1]
         self.th = np.pi/2 - np.deg2rad(np.linspace(1, 180, self.projections.shape[0]))
@@ -62,6 +84,12 @@ class MachineMotor:
         self.reconstruction_process()
         
     def reconstruction_process(self, step = 0):
+        """
+        Process for reconstructing the image from projections.
+
+        Parameters:
+            step (int): Current step in the reconstruction process.
+        """
         if step < self.projections.shape[0]:
             reconstruction_aux = np.ones((self.n, self.n))
             indx  = np.round(self.center + self.xpr * np.sin(self.th[step]) - self.ypr * np.cos(self.th[step])).astype(int)
@@ -79,6 +107,12 @@ class MachineMotor:
             self.sync.set(not self.sync)
 
     def crop_reconstruction(self, step = 100):
+        """
+        Crop the reconstructed image.
+
+        Parameters:
+            step (int): Current step in the cropping process.
+        """
         if step >= 0:
             pH = self.master.dummy.camera_height * step // 100
             pW = self.master.dummy.camera_width * step // 100
@@ -92,5 +126,3 @@ class MachineMotor:
             cx, cy = self.master.canvas_center()
             self.cut_tk, x, y = ImageProcessor.process_image_tk(self.cut, cx, cy)
             self.master.update_canvas(self.cut_tk, x, y, self.crop_reconstruction, steps = step-2)
-
-
