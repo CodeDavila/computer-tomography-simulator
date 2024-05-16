@@ -55,7 +55,7 @@ class CTMachineApp:
         self.create_buttons()
         self.create_log_text()
         self.create_canvas()
-        self.draw_rectangle()
+        self.draw_entry()
 
     def create_labels(self):
         label_text = "Computed Tomography Scanner"
@@ -92,16 +92,20 @@ class CTMachineApp:
         canvas_cx = self.canvas.winfo_width() // 2
         canvas_cy = self.canvas.winfo_height() // 2
         return canvas_cx, canvas_cy
-
-    def draw_rectangle(self):
-        rectangle_width = 500
-        rectangle_height = 500
-        cx, cy = self.canvas_center()
-        x1 = cx - rectangle_width//2
-        y1 = cy - rectangle_height//2
-        x2 = x1 + rectangle_width
-        y2 = y1 + rectangle_height
-        self.canvas.create_rectangle(x1, y1, x2, y2, fill="blue")
+    
+    def draw_entry(self) -> None:
+        try:
+            image = Image.open("ct_entry.png")
+            image = image.resize((500, 500))
+            self.image_entry = ImageTk.PhotoImage(image)
+            image_width = self.image_entry.width()
+            image_height = self.image_entry.height()
+            cx, cy = self.canvas_center()
+            x = cx - image_width // 2
+            y = cy - image_height // 2
+            self.image_entry_ID = self.canvas.create_image(x, y, anchor="nw", image=self.image_entry)
+        except Exception as e:
+            print("Error :", e)
 
     def draw_dummy_image(self):
         cx, cy = self.canvas_center()
@@ -117,6 +121,7 @@ class CTMachineApp:
     def on_set_button_click(self):
         if not self.set_flag:
             self.set_flag = True
+            self.canvas.delete(self.image_entry_ID)
             self.draw_dummy_image()
             self.machine = MachineMotor(self)
             self.master.after(500, self.machine.transition_to_camera_image)
