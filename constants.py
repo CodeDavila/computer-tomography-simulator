@@ -1,4 +1,4 @@
-# Constant
+# Constants
 
 # Constants for window dimensions
 WINDOW_WIDTH = 800  # Width of the application window
