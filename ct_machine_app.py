@@ -1,10 +1,14 @@
 import tkinter as tk
 from PIL import Image, ImageTk
-from Dummy import Dummy
-from ImageProcessor import ImageProcessor
-from MachineMotor import MachineMotor
-
+from dummy import Dummy
+from image_processor import ImageProcessor
+from machine_motor import MachineMotor
 from constants import WINDOW_WIDTH, WINDOW_HEIGHT, YELLOW
+
+# TODO:
+# - Implement functionality fot the log 
+# - Implement functionality for the 'on_stop_button_click' method.
+# - Implement functionality for the 'on_continue_button_click' method.
 
 class CTMachineApp:
     def __init__(self, master) -> None:
@@ -129,6 +133,3 @@ class CTMachineApp:
         # Run the application
         self.master.mainloop()
 
-    # TODO:
-    # - Implement functionality for the 'on_stop_button_click' method.
-    # - Implement functionality for the 'on_continue_button_click' method.

@@ -1,5 +1,5 @@
 import tkinter as tk
-from CTMachineApp import CTMachineApp
+from ct_machine_app import CTMachineApp
 
 def main():
     # Create a Tkinter root window

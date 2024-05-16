@@ -1,7 +1,10 @@
 import tkinter as tk
 import numpy as np
 from scipy.ndimage import rotate
-from ImageProcessor import ImageProcessor
+from image_processor import ImageProcessor
+
+# TODO:
+# - Implement functionality fot the log
 
 class MachineMotor:
     def __init__(self, master) -> None:
